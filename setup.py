@@ -13,7 +13,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 
 setup(
-    name='reachy-sdk',
+    name='reachy-sdk-modified',
     version='0.7.0',
     packages=find_packages(exclude=['tests']),
 
@@ -34,7 +34,6 @@ setup(
 
     author='Pollen Robotics',
     author_email='contact@pollen-robotics.com',
-    url='https://github.com/pollen-robotics/reachy-sdk',
 
     description='Python Reachy SDK.',
     long_description=long_description,
