@@ -116,16 +116,17 @@ async def goto_async(
 glob_torque = {'l_shoulder_pitch' : 0, 'l_shoulder_roll' : 0, 'l_arm_yaw' : 0, 'l_elbow_pitch' : 0,
                'l_forearm_yaw' : 0, 'l_wrist_pitch' : 0, 'l_wrist_roll' : 0}
 
-def get_torque(list_keys, elapsed_time):
+def get_torque(list_keys, t00):
+    torque_condition = time.time() - t00
     #return {l : glob_torque[l] for l in list_keys}
     #return [glob_torque[l] for l in list_keys]
     
-    #if elapsed_time > 2 and elapsed_time < 3:
-    #    return  [0, 100, 0, 0, 100, 100, 0]
-    #else:
-    #    return np.zeros(len(list_keys))
+    if torque_condition > 3 and torque_condition < 4:
+        return  [0, 100, 0, 0, 100, 100, 0]
+    else:
+        return np.zeros(len(list_keys))
 
-    return np.zeros(len(list_keys))
+    #return np.zeros(len(list_keys))
 
 
 
@@ -256,22 +257,26 @@ async def goto_async_compliant(
     x_k = np.zeros(len(A_df))
 
     mod_duration = duration
-
+    prev_pos = get_current_pos(goal_positions)
+    prev_pos = np.array(list(prev_pos.values()))
 
     t0 = time.time()
+    t00 = time.time()
     while True:
         elapsed_time = time.time() - t0
         #if elapsed_time > duration:
         #    break
-        
+
         current_positions = get_current_pos(goal_positions)
         current_positions_vals = np.array(list(current_positions.values()))
         goal_positions_vals = np.array(list(goal_positions.values()))
         
-        u_k = get_torque(joint_list, elapsed_time)
+        u_k = get_torque(joint_list, t00)
 
         error = np.amax(np.abs(np.subtract(goal_positions_vals, current_positions_vals)))
-        lim = 1
+        change = np.amax(np.abs(np.subtract(current_positions_vals, prev_pos)))
+        err_lim = 5
+        change_lim = 0.1
         #print("elapsed time: ", elapsed_time)
         #print("torque: ", u_k)
         #print("current_positions_vals: ", current_positions_vals)
@@ -279,29 +284,32 @@ async def goto_async_compliant(
         #print("error: ", error, "\n\n")
 
 
-        if error < lim:
+        if error < err_lim and change < change_lim:
             print("Breaking")
             print("elapsed_time", elapsed_time)
             print("Goal Positions", goal_positions_vals)
-            print("Final Position: ", current_positions_vals, "\n")
+            print("Final Position: ", current_positions_vals)
+            print("Error: ", error)
+            print("Change: ", change, "\n")
             break
 
         #print(elapsed_time)
         if np.sum(u_k) > 100:
             print("Torque Detected")
-            mod_duration = duration + elapsed_time
+            t0 = time.time()
+            mod_duration = duration + dt
             
             traj_func = interpolation_mode(
                 np.array(list(current_positions.values())),
                 np.array(list(goal_positions.values())),
-                mod_duration,
+                duration,
             )
         
         mod_duration_loop = mod_duration - elapsed_time
 
         x_k_1 = np.matmul(A_df, x_k) + np.matmul(B_df, u_k)
-        if np.sum(x_k_1) > 0:
-            print(x_k_1)
+        #if np.sum(x_k_1) > 0:
+        #    print(x_k_1)
 
 
         point = traj_func(elapsed_time)
@@ -310,6 +318,6 @@ async def goto_async_compliant(
             j.goal_position = pos + adm 
 
         x_k = x_k_1
-
+        prev_pos = current_positions_vals
 
         await asyncio.sleep(dt)
