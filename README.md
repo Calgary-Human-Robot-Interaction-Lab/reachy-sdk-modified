@@ -24,16 +24,11 @@ The SDK can be installed on any computer running Python 3.6 or later.
 
 You can install the SDK:
 
-#### From PyPi
-```bash
-pip install reachy-sdk
-```
-
 #### From the source
 
 ```bash
-git clone https://github.com/pollen-robotics/reachy-sdk
-pip install -e reachy-sdk
+git clone https://github.com/Calgary-Human-Robot-Interaction-Lab/reachy-sdk-modified.git
+pip install -e reachy-sdk-modified
 ```
 
 We recommend using [virtual environment](https://docs.python.org/3/tutorial/venv.html) for your development.
