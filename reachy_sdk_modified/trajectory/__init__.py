@@ -116,9 +116,16 @@ async def goto_async(
 glob_torque = {'l_shoulder_pitch' : 0, 'l_shoulder_roll' : 0, 'l_arm_yaw' : 0, 'l_elbow_pitch' : 0,
                'l_forearm_yaw' : 0, 'l_wrist_pitch' : 0, 'l_wrist_roll' : 0}
 
-def get_torque(list_keys):
+def get_torque(list_keys, elapsed_time):
     #return {l : glob_torque[l] for l in list_keys}
-    return [glob_torque[l] for l in list_keys]
+    #return [glob_torque[l] for l in list_keys]
+    
+    #if elapsed_time > 2 and elapsed_time < 3:
+    #    return  [0, 100, 0, 0, 100, 100, 0]
+    #else:
+    #    return np.zeros(len(list_keys))
+
+    return np.zeros(len(list_keys))
 
 
 
@@ -170,6 +177,7 @@ def goto_compliant(
         raise exc_queue.get()
 
 
+
 async def goto_async_compliant(
     damping_matrix,
     stiffness_matrix,
@@ -203,6 +211,12 @@ async def goto_async_compliant(
     # Make sure both starting and goal positions are in the same order
     starting_positions = {j: starting_positions[j] for j in goal_positions.keys()}
 
+    def get_current_pos(goal_positions):
+        current_positions = {j: j.present_position for j in goal_positions.keys()}
+        current_positions = {j: current_positions[j] for j in goal_positions.keys()}
+        return current_positions
+    
+
     length = round(duration * sampling_freq)
     if length < 1:
         raise ValueError('Goto length too short! (incoherent duration {duration} or sampling_freq {sampling_freq})!')
@@ -212,12 +226,12 @@ async def goto_async_compliant(
 
     gpk = list(goal_positions.keys())
     joint_list = [x.name for x in gpk]
-    torque_list = get_torque(joint_list)
+    #torque_list = get_torque(joint_list)
 
     print("Goal Positions: ", goal_positions)
     print("Goal Positions Keys: ", gpk)
     print("Joint List: ", joint_list)
-    print("Torque List: ", torque_list)
+    #print("Torque List: ", torque_list)
 
     traj_func = interpolation_mode(
         np.array(list(starting_positions.values())),
@@ -241,21 +255,61 @@ async def goto_async_compliant(
 
     x_k = np.zeros(len(A_df))
 
+    mod_duration = duration
+
 
     t0 = time.time()
     while True:
         elapsed_time = time.time() - t0
-        if elapsed_time > duration:
+        #if elapsed_time > duration:
+        #    break
+        
+        current_positions = get_current_pos(goal_positions)
+        current_positions_vals = np.array(list(current_positions.values()))
+        goal_positions_vals = np.array(list(goal_positions.values()))
+        
+        u_k = get_torque(joint_list, elapsed_time)
+
+        error = np.amax(np.abs(np.subtract(goal_positions_vals, current_positions_vals)))
+        lim = 1
+        #print("elapsed time: ", elapsed_time)
+        #print("torque: ", u_k)
+        #print("current_positions_vals: ", current_positions_vals)
+        #print("goal_positions_vals: ", goal_positions_vals)
+        #print("error: ", error, "\n\n")
+
+
+        if error < lim:
+            print("Breaking")
+            print("elapsed_time", elapsed_time)
+            print("Goal Positions", goal_positions_vals)
+            print("Final Position: ", current_positions_vals, "\n")
             break
 
-        u_k = get_torque(joint_list)
+        #print(elapsed_time)
+        if np.sum(u_k) > 100:
+            print("Torque Detected")
+            mod_duration = duration + elapsed_time
+            
+            traj_func = interpolation_mode(
+                np.array(list(current_positions.values())),
+                np.array(list(goal_positions.values())),
+                mod_duration,
+            )
+        
+        mod_duration_loop = mod_duration - elapsed_time
+
         x_k_1 = np.matmul(A_df, x_k) + np.matmul(B_df, u_k)
+        if np.sum(x_k_1) > 0:
+            print(x_k_1)
+
 
         point = traj_func(elapsed_time)
         for j, pos, adm in zip(joints, point, x_k_1):
             #j.goal_position = pos
-            j.goal_position = pos + adm
+            j.goal_position = pos + adm 
 
         x_k = x_k_1
+
 
         await asyncio.sleep(dt)
