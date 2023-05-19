@@ -121,12 +121,12 @@ def get_torque(list_keys, t00):
     #return {l : glob_torque[l] for l in list_keys}
     #return [glob_torque[l] for l in list_keys]
     
-    if torque_condition > 3 and torque_condition < 4:
-        return  [0, 100, 0, 0, 100, 100, 0]
-    else:
-        return np.zeros(len(list_keys))
+    #if torque_condition > 3 and torque_condition < 4:
+    #    return  [0, 100, 0, 0, 100, 100, 0]
+    #else:
+    #    return np.zeros(len(list_keys))
 
-    #return np.zeros(len(list_keys))
+    return np.zeros(len(list_keys))
 
 
 
@@ -255,8 +255,10 @@ async def goto_async_compliant(
     #sys = signal.StateSpace(A_df, B_df, C_df, D_df, dt = dt)
 
     x_k = np.zeros(len(A_df))
-
-    mod_duration = duration
+    
+    # Commenting with caution
+    #mod_duration = duration
+    
     prev_pos = get_current_pos(goal_positions)
     prev_pos = np.array(list(prev_pos.values()))
 
@@ -275,8 +277,11 @@ async def goto_async_compliant(
 
         error = np.amax(np.abs(np.subtract(goal_positions_vals, current_positions_vals)))
         change = np.amax(np.abs(np.subtract(current_positions_vals, prev_pos)))
+        
+        # Tunable Parameters
         err_lim = 5
         change_lim = 0.1
+
         #print("elapsed time: ", elapsed_time)
         #print("torque: ", u_k)
         #print("current_positions_vals: ", current_positions_vals)
@@ -293,11 +298,17 @@ async def goto_async_compliant(
             print("Change: ", change, "\n")
             break
 
+
+        # Tunable Parameters
+        torque_lim = 100
+
         #print(elapsed_time)
-        if np.sum(u_k) > 100:
+        if np.sum(u_k) > torque_lim:
             print("Torque Detected")
             t0 = time.time()
-            mod_duration = duration + dt
+
+            # Commenting with caution
+            #mod_duration = duration + dt
             
             traj_func = interpolation_mode(
                 np.array(list(current_positions.values())),
@@ -305,7 +316,8 @@ async def goto_async_compliant(
                 duration,
             )
         
-        mod_duration_loop = mod_duration - elapsed_time
+        # Commenting with caution
+        # mod_duration_loop = mod_duration - elapsed_time
 
         x_k_1 = np.matmul(A_df, x_k) + np.matmul(B_df, u_k)
         #if np.sum(x_k_1) > 0:
