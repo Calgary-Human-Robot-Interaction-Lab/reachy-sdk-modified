@@ -307,13 +307,14 @@ async def goto_async_compliant(
             print("Torque Detected")
             t0 = time.time()
 
-            # Commenting with caution
-            #mod_duration = duration + dt
+            # Commenting with caution - Uncomment if restorative movement after external forces is too slow
+            # mod_duration = duration - elapsed_time + dt
             
             traj_func = interpolation_mode(
                 np.array(list(current_positions.values())),
                 np.array(list(goal_positions.values())),
                 duration,
+                #mod_duration,
             )
         
         # Commenting with caution
