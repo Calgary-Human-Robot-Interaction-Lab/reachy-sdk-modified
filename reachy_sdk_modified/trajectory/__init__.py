@@ -121,12 +121,12 @@ def get_torque(list_keys, t00):
     #return {l : glob_torque[l] for l in list_keys}
     #return [glob_torque[l] for l in list_keys]
     
-    #if torque_condition > 3 and torque_condition < 4:
-    #    return  [0, 100, 0, 0, 100, 100, 0]
-    #else:
-    #    return np.zeros(len(list_keys))
+    if torque_condition > 3 and torque_condition < 4:
+        return  [10, 20, -30, 10, -20, 20, -10]
+    else:
+        return np.zeros(len(list_keys))
 
-    return np.zeros(len(list_keys))
+    #return np.zeros(len(list_keys))
 
 
 
@@ -300,10 +300,10 @@ async def goto_async_compliant(
 
 
         # Tunable Parameters
-        torque_lim = 100
+        torque_lim = 20
 
         #print(elapsed_time)
-        if np.sum(u_k) > torque_lim:
+        if np.sum(np.absolute(u_k)) > torque_lim:
             print("Torque Detected")
             t0 = time.time()
 
