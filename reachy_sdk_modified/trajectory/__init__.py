@@ -122,7 +122,8 @@ def get_torque(list_keys, t00):
     #return [glob_torque[l] for l in list_keys]
     
     if torque_condition > 3 and torque_condition < 4:
-        return  [10, 20, -30, 10, -20, 20, -10]
+        #return  [10, 20, -30, 10, -20, 20, -10]
+        return [glob_torque[l] for l in list_keys]
     else:
         return np.zeros(len(list_keys))
 
