@@ -241,14 +241,18 @@ async def goto_async_compliant(
         duration,
     )
 
-    B = np.linalg.inv(damping_matrix)
+    # These equations are obtained by taking the Admittance Block (1 / [ds + k]) and converting from transfer function to state space
+    
+    B = np.linalg.inv(damping_matrix) 
     A = -1 * np.matmul(B, stiffness_matrix)
 
     #B_df = dt * B
     #A_df = ((np.identity(len(A))) + (dt * A))
 
+    # These equations convert the continuous-time equations to discrete-time
+    
     A_df = np.linalg.inv(((np.identity(len(A))) - (dt * A)))
-    B_df = dt * np.matmul(A_df, B)
+    B_df = dt * np.matmul(A_df, B) # Multiply by dt?
     
     #C_df = np.identity(len(A_df))
     #D_df = np.zeros(A_df.shape)
